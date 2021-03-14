@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_ui/screens/login_page.dart';
+import 'package:flutter_chat_ui/utils/sign_out.dart';
 import 'package:flutter_chat_ui/widgets/category_selector.dart';
 import 'package:flutter_chat_ui/widgets/favorite_contacts.dart';
 import 'package:flutter_chat_ui/widgets/recent_chats.dart';
@@ -18,7 +20,15 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icon(Icons.menu),
           iconSize: 30.0,
           color: Colors.white,
-          onPressed: () {},
+          //Todo - SideMenu or menu Screen
+          onPressed: () {
+            signOut();
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => LoginPage(),
+              ),
+            );
+          },
         ),
         title: Text(
           'Chats',
