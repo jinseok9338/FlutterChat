@@ -1,3 +1,2 @@
-# Apps From Scratch: Flutter Chat UI
+Flutter working Chat App with Firebase Auth and FireStore
 
-[YouTube: Flutter Chat UI Tutorial | Apps From Scratch](https://youtu.be/h-igXZCCrrc)
