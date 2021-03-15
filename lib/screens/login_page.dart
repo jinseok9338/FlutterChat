@@ -21,6 +21,11 @@ class _LoginPageState extends State<LoginPage> {
               FlutterLogo(size: 150),
               SizedBox(height: 50),
               _signInButton(),
+              emailField(),
+              Container(margin: EdgeInsets.only(bottom: 25.0)),
+              passwordField(),
+              Container(margin: EdgeInsets.only(bottom: 25.0)),
+              submitButton(context),
             ],
           ),
         ),
@@ -73,4 +78,68 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+}
+
+String email = '';
+String password = '';
+
+Widget emailField() {
+  return Container(
+    width: 200.0,
+    child: TextFormField(
+      keyboardType: TextInputType.emailAddress,
+      decoration: InputDecoration(
+        labelText: 'Email',
+        hintText: 'you@exmaple.com',
+      ),
+      onChanged: (text) {
+        email = text;
+      },
+    ),
+  );
+}
+
+Widget passwordField() {
+  return Container(
+      width: 200.0,
+      child: TextFormField(
+        obscureText: true,
+        decoration: InputDecoration(
+          labelText: 'Password',
+          hintText: 'Password',
+        ),
+        onChanged: (text) {
+          password = text;
+        },
+      ));
+}
+
+Widget submitButton(context) {
+  return ElevatedButton(
+    style: ButtonStyle(
+      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+        (Set<MaterialState> states) {
+          if (states.contains(MaterialState.pressed))
+            return Theme.of(context).colorScheme.primary.withOpacity(0.5);
+          return null; // Use the component's default.
+        },
+      ),
+    ),
+    child: Text('submit'),
+    onPressed: () {
+      print("Email:$email password: $password");
+      signInWithEmailAndPassword(email, password).then((result) {
+        if (result != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) {
+                return HomeScreen();
+              },
+            ),
+          );
+        }
+      });
+      //Todo Validate the Login Info
+    },
+  );
 }

@@ -22,8 +22,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     User firebaseUser = FirebaseAuth.instance.currentUser;
 
-    print(firebaseUser);
-
     return MaterialApp(
       title: 'Flutter Chats',
       debugShowCheckedModeBanner: false,

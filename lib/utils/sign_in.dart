@@ -38,10 +38,14 @@ Future<String> signInWithGoogle() async {
     if (storedUser == null) {
       users.add({
         "uid": currentUser.uid,
-        "displayName": currentUser.displayName,
-        "photoURL": currentUser.photoURL,
+        "displayName": currentUser.displayName != null
+            ? currentUser.displayName
+            : currentUser.email,
+        "photoURL": currentUser.photoURL != null ? currentUser.photoURL : "",
         "email": currentUser.email,
-        "emailVerified": currentUser.emailVerified,
+        "emailVerified": currentUser.emailVerified != null
+            ? currentUser.emailVerified
+            : true,
         "createdAt": DateTime.now()
       });
     }
@@ -51,5 +55,46 @@ Future<String> signInWithGoogle() async {
     return '$user';
   }
 
+  return null;
+}
+
+Future<String> signInWithEmailAndPassword(String email, String password) async {
+  try {
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email, password: password);
+    print(userCredential);
+
+    final User currentUser = _auth.currentUser;
+    CollectionReference users = firestore.collection('Users');
+
+    final storedUser =
+        users.where("uid", isEqualTo: currentUser.uid).get().then(
+              (value) => print(value),
+            );
+    if (storedUser == null) {
+      users.add({
+        "uid": currentUser.uid,
+        "displayName": currentUser.displayName != null
+            ? currentUser.displayName
+            : currentUser.email,
+        "photoURL": currentUser.photoURL != null ? currentUser.photoURL : "",
+        "email": currentUser.email,
+        "emailVerified": currentUser.emailVerified != null
+            ? currentUser.emailVerified
+            : true,
+        "createdAt": DateTime.now()
+      });
+    }
+
+    print('signInWithGoogle succeeded: $currentUser');
+
+    return '$currentUser';
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'user-not-found') {
+      print('No user found for that email.');
+    } else if (e.code == 'wrong-password') {
+      print('Wrong password provided for that user.');
+    }
+  }
   return null;
 }
