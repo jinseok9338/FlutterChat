@@ -21,6 +21,7 @@ Future<void> send_a_chat(User user, String msg, String chatroomId) async {
       .then((QuerySnapshot querySnapshot) => {
             querySnapshot.docs.forEach((doc) {
               print(doc);
+              //check the doc data and update the chat array
             })
           })
       .catchError((onError) => print(onError));
