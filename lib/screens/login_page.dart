@@ -129,6 +129,7 @@ Widget submitButton(context) {
     onPressed: () {
       print("Email:$email password: $password");
       signInWithEmailAndPassword(email, password).then((result) {
+        print(result);
         if (result != null) {
           Navigator.of(context).push(
             MaterialPageRoute(
