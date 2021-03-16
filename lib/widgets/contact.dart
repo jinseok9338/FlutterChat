@@ -1,10 +1,45 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_ui/models/message_model.dart';
 import 'package:flutter_chat_ui/screens/chat_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_chat_ui/utils/make_a_chat.dart';
 
 class Contacts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    CollectionReference users = FirebaseFirestore.instance.collection('Users');
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: users.snapshots(),
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Something went wrong');
+        }
+
+        return ContactsWidget(user: snapshot);
+      },
+    );
+  }
+}
+
+// ignore: must_be_immutable
+class ContactsWidget extends StatefulWidget {
+  var user;
+  ContactsWidget({Key key, this.user}) : super(key: key);
+
+  @override
+  _ContactsWidgetState createState() => _ContactsWidgetState();
+}
+
+class _ContactsWidgetState extends State<ContactsWidget> {
+  @override
+  Widget build(BuildContext context) {
+    final FirebaseAuth auth = FirebaseAuth.instance;
+
+    var users_with_me = widget.user.data.docs.map((doc) => doc.data()).toList();
+    var users =
+        users_with_me.where((i) => i["uid"] != auth.currentUser.uid).toList();
+
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
@@ -20,18 +55,19 @@ class Contacts extends StatelessWidget {
             topRight: Radius.circular(30.0),
           ),
           child: ListView.builder(
-            itemCount: chats.length,
+            itemCount: users.length,
             itemBuilder: (BuildContext context, int index) {
-              final Message chat = chats[index];
+              print(index);
               return GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                      user: chat.sender,
+                onTap: () {
+                  create_a_chat(auth.currentUser.uid, users[index]["uid"]);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(user: users[index]),
                     ),
-                  ),
-                ),
+                  );
+                },
                 child: Container(
                   margin: EdgeInsets.only(top: 5.0, bottom: 5.0, right: 20.0),
                   padding:
@@ -50,14 +86,15 @@ class Contacts extends StatelessWidget {
                         children: <Widget>[
                           CircleAvatar(
                             radius: 35.0,
-                            backgroundImage: AssetImage(chat.sender.imageUrl),
+                            backgroundImage:
+                                NetworkImage(users[index]["photoURL"]),
                           ),
                           SizedBox(width: 10.0),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                chat.sender.name,
+                                users[index]["displayName"],
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 15.0,

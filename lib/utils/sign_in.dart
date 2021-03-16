@@ -1,5 +1,6 @@
 // import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_chat_ui/main.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -22,6 +23,7 @@ Future<String> signInWithGoogle() async {
   final UserCredential authResult =
       await _auth.signInWithCredential(credential);
   final User user = authResult.user;
+  final userstate = UserState();
 
   if (user != null) {
     assert(!user.isAnonymous);
@@ -47,7 +49,13 @@ Future<String> signInWithGoogle() async {
             ? currentUser.emailVerified
             : true,
         "createdAt": DateTime.now()
-      });
+      }).then((value) => print(
+            value.get().then(
+                  (value) => userstate.userLogIn(
+                    value.data(),
+                  ),
+                ),
+          ));
     }
 
     print('signInWithGoogle succeeded: $user');

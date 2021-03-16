@@ -1,18 +1,49 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_ui/models/message_model.dart';
-import 'package:flutter_chat_ui/models/user_model.dart';
+// import 'package:flutter_chat_ui/models/message_model.dart';
 
 class ChatScreen extends StatefulWidget {
-  final User user;
-
-  ChatScreen({this.user});
+  User user;
+  ChatScreen({Key key, this.user}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  _buildMessage(Message message, bool isMe) {
+  @override
+  Widget build(BuildContext context) {
+    User firebaseUser = FirebaseAuth.instance.currentUser;
+    CollectionReference chats = FirebaseFirestore.instance
+        .collection('Chats')
+        .where("users", arrayContains: firebaseUser.uid)
+        .where("users", arrayContains: widget.user.uid);
+    return StreamBuilder<QuerySnapshot>(
+      stream: chats.snapshots(),
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Something went wrong');
+        }
+
+        return ChatScreenWidget(chats: snapshot, user: widget.user);
+      },
+    );
+  }
+}
+
+class ChatScreenWidget extends StatefulWidget {
+  AsyncSnapshot<QuerySnapshot> chats;
+  var user;
+
+  ChatScreenWidget({this.chats, this.user});
+
+  @override
+  _ChatScreenWidgetState createState() => _ChatScreenWidgetState();
+}
+
+class _ChatScreenWidgetState extends State<ChatScreenWidget> {
+  _buildMessage(message, bool isMe) {
     final Container msg = Container(
       margin: isMe
           ? EdgeInsets.only(
@@ -108,6 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
             iconSize: 25.0,
             color: Theme.of(context).primaryColor,
             onPressed: () {},
+            //to do add functionality to add chat
           ),
         ],
       ),
@@ -116,11 +148,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final FirebaseAuth auth = FirebaseAuth.instance;
+
+    var chats = [];
+    widget.chats.data.docs.forEach((element) {
+      chats.add(element.data());
+    });
+    print(chats);
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
       appBar: AppBar(
         title: Text(
-          widget.user.name,
+          widget.user.displayName,
           style: TextStyle(
             fontSize: 28.0,
             fontWeight: FontWeight.bold,
@@ -157,11 +196,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: ListView.builder(
                     reverse: true,
                     padding: EdgeInsets.only(top: 15.0),
-                    itemCount: messages.length,
+                    itemCount: chats[0]["chats"].length,
                     itemBuilder: (BuildContext context, int index) {
-                      final Message message = messages[index];
-                      final bool isMe = message.sender.id == currentUser.id;
-                      return _buildMessage(message, isMe);
+                      final chat = chats[0].chats[index];
+                      final bool isMe =
+                          chat["sender"]["uid"] == auth.currentUser.uid;
+                      return _buildMessage(chat, isMe);
                     },
                   ),
                 ),
