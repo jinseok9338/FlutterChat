@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/widgets/contact.dart';
 
-import 'package:flutter_chat_ui/widgets/recent_chats.dart';
 
 class MakeChatPage extends StatefulWidget {
   @override

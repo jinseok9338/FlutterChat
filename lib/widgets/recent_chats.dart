@@ -1,21 +1,19 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_chat_ui/screens/chat_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'package:flutter/material.dart';
-// import 'package:flutter_chat_ui/models/message_model.dart';
-import 'package:flutter_chat_ui/screens/chat_screen.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RecentChats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    CollectionReference chats = FirebaseFirestore.instance.collection('Chats');
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    Query user = FirebaseFirestore.instance
+        .collection('Users')
+        .where("uid", isEqualTo: _auth.currentUser.uid);
 
     return StreamBuilder<QuerySnapshot>(
-      stream: chats.snapshots(),
+      stream: user.snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.hasError) {
           return Text('Something went wrong');
@@ -27,9 +25,10 @@ class RecentChats extends StatelessWidget {
   }
 }
 
+// ignore: must_be_immutable
 class RecentChatsClass extends StatefulWidget {
   AsyncSnapshot<QuerySnapshot> snapshot;
-  RecentChatsClass({Key key, this.snapshot}) : super(key: key) {}
+  RecentChatsClass({Key key, this.snapshot}) : super(key: key);
 
   @override
   _RecentChatsState createState() => _RecentChatsState();
@@ -38,8 +37,8 @@ class RecentChatsClass extends StatefulWidget {
 class _RecentChatsState extends State<RecentChatsClass> {
   @override
   Widget build(BuildContext context) {
-    var chats = widget.snapshot.data.docs.map((doc) => doc.data()).toList();
-    print(chats);
+    var user = widget.snapshot.data.docs.map((doc) => doc.data()).toList()[0];
+    var chatRooms = user["chatRooms"];
 
     return Expanded(
       child: Container(
@@ -56,18 +55,19 @@ class _RecentChatsState extends State<RecentChatsClass> {
             topRight: Radius.circular(30.0),
           ),
           child: ListView.builder(
-            itemCount: chats.length,
+            itemCount: chatRooms.length,
             itemBuilder: (BuildContext context, int index) {
-              print(index);
-              final chat = chats[index];
+              final chatRoom = chatRooms[index];
+              print(chatRoom);
 
               return GestureDetector(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatScreen(
-                      user: chat["chats"][0]
-                          ["sender"], //This is wrong because it only
+                      contact: chatRoom["contact"],
+                      chatRoomId: chatRoom["chatRoomId"],
+                      //This is wrong because it only
                     ),
                   ),
                 ),
@@ -89,15 +89,15 @@ class _RecentChatsState extends State<RecentChatsClass> {
                         children: <Widget>[
                           CircleAvatar(
                             radius: 35.0,
-                            backgroundImage: NetworkImage(
-                                chat["chats"][0]["sender"]["photoURL"]),
+                            backgroundImage:
+                                NetworkImage(chatRoom["contact"]["photoURL"]),
                           ),
                           SizedBox(width: 10.0),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                chat["chats"][0]["sender"]["displayName"],
+                                chatRoom["contact"]["displayName"],
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 15.0,
@@ -108,7 +108,7 @@ class _RecentChatsState extends State<RecentChatsClass> {
                               Container(
                                 width: MediaQuery.of(context).size.width * 0.45,
                                 child: Text(
-                                  chat["chats"][0]["msg"],
+                                  chatRoom["lastMessage"],
                                   style: TextStyle(
                                     color: Colors.blueGrey,
                                     fontSize: 15.0,
@@ -124,7 +124,7 @@ class _RecentChatsState extends State<RecentChatsClass> {
                       Column(
                         children: <Widget>[
                           Text(
-                            chat["chats"][0]["createdAt"]
+                            chatRoom["lastSentTime"]
                                     .toDate()
                                     .difference(DateTime.now())
                                     .inDays

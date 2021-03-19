@@ -33,10 +33,12 @@ Future<String> signInWithGoogle() async {
     assert(user.uid == currentUser.uid);
     CollectionReference users = firestore.collection('Users');
 
-    final storedUser =
-        users.where("uid", isEqualTo: currentUser.uid).get().then(
-              (value) => print(value),
-            );
+    var storedUser = {};
+    storedUser = await users
+        .doc(currentUser.uid)
+        .get()
+        .then((snapshot) => snapshot.data());
+
     if (storedUser == null) {
       users.add({
         "uid": currentUser.uid,

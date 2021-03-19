@@ -36,9 +36,9 @@ class _ContactsWidgetState extends State<ContactsWidget> {
   Widget build(BuildContext context) {
     final FirebaseAuth auth = FirebaseAuth.instance;
 
-    var users_with_me = widget.user.data.docs.map((doc) => doc.data()).toList();
+    var usersWithMe = widget.user.data.docs.map((doc) => doc.data()).toList();
     var users =
-        users_with_me.where((i) => i["uid"] != auth.currentUser.uid).toList();
+        usersWithMe.where((i) => i["uid"] != auth.currentUser.uid).toList();
 
     return Expanded(
       child: Container(
@@ -60,11 +60,11 @@ class _ContactsWidgetState extends State<ContactsWidget> {
               print(index);
               return GestureDetector(
                 onTap: () {
-                  create_a_chat(auth.currentUser.uid, users[index]["uid"]);
+                  // create_a_chat(auth.currentUser.uid, users[index]["uid"]);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ChatScreen(user: users[index]),
+                      builder: (_) => ChatScreen(contact: users[index]),
                     ),
                   );
                 },

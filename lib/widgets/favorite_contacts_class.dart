@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_ui/models/user_model.dart';
-import 'package:flutter_chat_ui/screens/chat_screen.dart';
+
 import 'package:flutter_chat_ui/screens/home_screen.dart';
 
 // ignore: must_be_immutable
@@ -24,11 +23,10 @@ class _FavoriteContactsWidgetsState extends State<FavoriteContactsWidgets> {
   Widget build(BuildContext context) {
     final FirebaseAuth auth = FirebaseAuth.instance;
 
-    var favorites_with_me =
+    var favoritesWithMe =
         widget.snapshot.data.docs.map((doc) => doc.data()).toList();
-    var favorites = favorites_with_me
-        .where((i) => i["uid"] != auth.currentUser.uid)
-        .toList();
+    var favorites =
+        favoritesWithMe.where((i) => i["uid"] != auth.currentUser.uid).toList();
     print(favorites);
 
     return Padding(

@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_ui/utils/make_a_chat.dart';
+import 'package:flutter_chat_ui/utils/send_a_chat.dart';
 // import 'package:flutter_chat_ui/models/message_model.dart';
 
+// ignore: must_be_immutable
 class ChatScreen extends StatefulWidget {
-  User user;
-  ChatScreen({Key key, this.user}) : super(key: key);
+  Map<String, dynamic> contact;
+  String chatRoomId;
+  ChatScreen({Key key, this.contact, this.chatRoomId}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -15,10 +19,24 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     User firebaseUser = FirebaseAuth.instance.currentUser;
-    CollectionReference chats = FirebaseFirestore.instance
+    Query chats;
+
+    String meId = firebaseUser.uid;
+    String contactId = widget.contact["uid"];
+
+    if (widget.chatRoomId != null) {
+      chats = FirebaseFirestore.instance
+          .collection('Chats')
+          .where("chatRoomId", isEqualTo: widget.chatRoomId);
+    }
+    chats = FirebaseFirestore.instance
         .collection('Chats')
-        .where("users", arrayContains: firebaseUser.uid)
-        .where("users", arrayContains: widget.user.uid);
+        .where("contacts.$contactId", isEqualTo: true)
+        .where("contacts.$meId", isEqualTo: true);
+
+    print(chats);
+    //Can't do multiple where filter
+
     return StreamBuilder<QuerySnapshot>(
       stream: chats.snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -26,17 +44,18 @@ class _ChatScreenState extends State<ChatScreen> {
           return Text('Something went wrong');
         }
 
-        return ChatScreenWidget(chats: snapshot, user: widget.user);
+        return ChatScreenWidget(chats: snapshot, contact: widget.contact);
       },
     );
   }
 }
 
+// ignore: must_be_immutable
 class ChatScreenWidget extends StatefulWidget {
   AsyncSnapshot<QuerySnapshot> chats;
-  var user;
+  Map<String, dynamic> contact;
 
-  ChatScreenWidget({this.chats, this.user});
+  ChatScreenWidget({this.chats, this.contact});
 
   @override
   _ChatScreenWidgetState createState() => _ChatScreenWidgetState();
@@ -73,7 +92,12 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            message.time,
+            message["sentTime"]
+                    .toDate()
+                    .difference(DateTime.now())
+                    .inDays
+                    .toString() +
+                " days ago",
             style: TextStyle(
               color: Colors.blueGrey,
               fontSize: 16.0,
@@ -82,7 +106,7 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
           ),
           SizedBox(height: 8.0),
           Text(
-            message.text,
+            message["msg"],
             style: TextStyle(
               color: Colors.blueGrey,
               fontSize: 16.0,
@@ -98,21 +122,12 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
     return Row(
       children: <Widget>[
         msg,
-        IconButton(
-          icon: message.isLiked
-              ? Icon(Icons.favorite)
-              : Icon(Icons.favorite_border),
-          iconSize: 30.0,
-          color: message.isLiked
-              ? Theme.of(context).primaryColor
-              : Colors.blueGrey,
-          onPressed: () {},
-        )
       ],
     );
   }
 
-  _buildMessageComposer() {
+  _buildMessageComposer(meId, chats) {
+    String msg;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.0),
       height: 70.0,
@@ -128,7 +143,10 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
           Expanded(
             child: TextField(
               textCapitalization: TextCapitalization.sentences,
-              onChanged: (value) {},
+              onChanged: (String text) {
+                print("$text");
+                msg = text;
+              },
               decoration: InputDecoration.collapsed(
                 hintText: 'Send a message...',
               ),
@@ -138,7 +156,14 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
             icon: Icon(Icons.send),
             iconSize: 25.0,
             color: Theme.of(context).primaryColor,
-            onPressed: () {},
+            onPressed: () {
+              if (chats == null) {
+                send_a_chat(meId, msg, widget.contact["uid"]);
+              } else {
+                send_a_chat(
+                    meId, msg, widget.contact["uid"], chats["chatRoomdId"]);
+              }
+            },
             //to do add functionality to add chat
           ),
         ],
@@ -151,19 +176,30 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
     final FirebaseAuth auth = FirebaseAuth.instance;
 
     var chats = [];
-    widget.chats.data.docs.forEach((element) {
-      chats.add(element.data());
-    });
-    print(chats);
+    chats = widget.chats.data.docs.map((element) => element.data()).toList();
+    chats = chats[0]["chats"];
+    chats.sort((a, b) => a["sentTime"].compareTo(b["sentTime"]));
+
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
       appBar: AppBar(
-        title: Text(
-          widget.user.displayName,
-          style: TextStyle(
-            fontSize: 28.0,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              backgroundImage: NetworkImage(widget.contact["photoURL"]),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                widget.contact["displayName"],
+                style: TextStyle(
+                  fontSize: 25.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          ],
         ),
         elevation: 0.0,
         actions: <Widget>[
@@ -194,11 +230,11 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
                     topRight: Radius.circular(30.0),
                   ),
                   child: ListView.builder(
-                    reverse: true,
+                    reverse: false,
                     padding: EdgeInsets.only(top: 15.0),
-                    itemCount: chats[0]["chats"].length,
+                    itemCount: chats.length,
                     itemBuilder: (BuildContext context, int index) {
-                      final chat = chats[0].chats[index];
+                      final chat = chats[index];
                       final bool isMe =
                           chat["sender"]["uid"] == auth.currentUser.uid;
                       return _buildMessage(chat, isMe);
@@ -207,7 +243,7 @@ class _ChatScreenWidgetState extends State<ChatScreenWidget> {
                 ),
               ),
             ),
-            _buildMessageComposer(),
+            _buildMessageComposer(auth.currentUser.uid, chats),
           ],
         ),
       ),
